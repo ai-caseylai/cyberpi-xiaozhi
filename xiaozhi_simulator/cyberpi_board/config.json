@@ -1,0 +1,20 @@
+{
+    "target": "esp32",
+    "name": "CyberPi",
+    "description": "Makeblock CyberPi - ESP32, 1.44\" TFT 128x128, I2S mic/speaker, buttons, RGB LEDs",
+    "builds": [
+        {
+            "name": "cyberpi",
+            "sdkconfig_append": [
+                "CONFIG_USE_LCD_ST7735=y",
+                "CONFIG_LCD_WIDTH=128",
+                "CONFIG_LCD_HEIGHT=128",
+                "CONFIG_USE_AUDIO_I2S=y",
+                "CONFIG_USE_MIC_I2S=y",
+                "CONFIG_USE_SPEAKER_I2S=y",
+                "CONFIG_USE_BUTTON_GPIO=y",
+                "CONFIG_USE_LED_WS2812=y"
+            ]
+        }
+    ]
+}

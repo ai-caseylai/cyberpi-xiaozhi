@@ -1,0 +1,45 @@
+# CyberPi Pin Mapping for xiaozhi-esp32
+# ======================================
+# CyberPi uses ESP32 with the following known pins:
+
+# ── Display (ST7735 128x128 TFT) ──
+# SPI: MOSI=23, CLK=18, CS=5, DC=26, RST=25 (approximate - verify!)
+DISPLAY_MOSI_GPIO=23
+DISPLAY_CLK_GPIO=18
+DISPLAY_CS_GPIO=5
+DISPLAY_DC_GPIO=26
+DISPLAY_RST_GPIO=25
+DISPLAY_BACKLIGHT_GPIO=-1  # no backlight control
+
+# ── Audio (I2S) ──
+# Mic: MEMS microphone via I2S
+AUDIO_I2S_BCK_GPIO=32
+AUDIO_I2S_WS_GPIO=33
+AUDIO_I2S_DIN_GPIO=34   # mic input
+AUDIO_I2S_DOUT_GPIO=-1   # speaker uses internal DAC or separate I2S
+
+# Speaker: MAX98357 I2S amp (separate I2S channel)
+SPEAKER_I2S_BCK_GPIO=27
+SPEAKER_I2S_WS_GPIO=14
+SPEAKER_I2S_DOUT_GPIO=12
+
+# ── Buttons (GPIO) ──
+BUTTON_A_GPIO=36
+BUTTON_B_GPIO=39
+BUTTON_JOY_UP=38
+BUTTON_JOY_DOWN=37
+BUTTON_JOY_LEFT=35
+BUTTON_JOY_RIGHT=0
+BUTTON_JOY_MIDDLE=13
+
+# ── LEDs (WS2812 RGB) ──
+LED_WS2812_GPIO=17
+LED_WS2812_COUNT=4
+
+# ── I2C (for MPU6050 gyro) ──
+I2C_SDA_GPIO=21
+I2C_SCL_GPIO=22
+
+# NOTE: These pins are APPROXIMATE based on CyberPi schematics.
+# You MUST verify pins with actual CyberPi hardware before compiling.
+# Use a multimeter or check the Makeblock CyberPi schematic.
