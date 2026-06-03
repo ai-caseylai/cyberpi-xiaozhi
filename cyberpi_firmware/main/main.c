@@ -320,7 +320,7 @@ static void lcd_draw_bitmap16(const uint8_t *bitmap, int x, int y, uint16_t colo
 
 static void lcd_draw_bitmap24(const uint8_t *bitmap, int x, int y, uint16_t color, uint16_t bg) {
     // 24x24 font: 72 bytes, row-major, 3 bytes per row (24 bits)
-    uint16_t buf[24 * 24];
+    static uint16_t buf[24 * 24]; // static to avoid stack overflow
     int idx = 0;
     for (int row = 0; row < 24; row++) {
         uint8_t b0 = bitmap[row * 3];
@@ -377,6 +377,12 @@ static void lcd_draw_text(const char *str, int x, int y, uint16_t color, uint16_
             i++; // skip unknown
         }
     }
+}
+
+static void show_home(void) {
+    lcd_fill(0x0000);
+    lcd_draw_text("小芬v0.52", 2, 10, 0xFFFF, 0x0000);
+    lcd_draw_text("A=錄/播 B=發送", 2, 112, 0x07E0, 0x0000);
 }
 
 /* ═══════════════════════════════════════
@@ -534,35 +540,6 @@ static void ws_init(void) {
     esp_websocket_client_start(ws_client);
 }
 
-static bool ws_send_listen_start(void) {
-    if (!ws_connected) return false;
-    cJSON *msg = cJSON_CreateObject();
-    cJSON_AddStringToObject(msg, "type", "listen");
-    cJSON_AddStringToObject(msg, "state", "start");
-    cJSON_AddStringToObject(msg, "mode", "manual");
-    char *s = cJSON_PrintUnformatted(msg);
-    esp_websocket_client_send_text(ws_client, s, strlen(s), portMAX_DELAY);
-    free(s); cJSON_Delete(msg);
-    return true;
-}
-
-static bool ws_send_listen_stop(void) {
-    if (!ws_connected) return false;
-    cJSON *msg = cJSON_CreateObject();
-    cJSON_AddStringToObject(msg, "type", "listen");
-    cJSON_AddStringToObject(msg, "state", "stop");
-    cJSON_AddStringToObject(msg, "mode", "manual");
-    char *s = cJSON_PrintUnformatted(msg);
-    esp_websocket_client_send_text(ws_client, s, strlen(s), portMAX_DELAY);
-    free(s); cJSON_Delete(msg);
-    return true;
-}
-
-static void ws_send_audio(const uint8_t *data, size_t len) {
-    if (!ws_connected) return;
-    esp_websocket_client_send_bin(ws_client, (char*)data, len, portMAX_DELAY);
-}
-
 static bool ws_send_audio_and_wait(size_t wav_sz, char *text_out, int max) {
     if (!ws_connected) { ESP_LOGE(TAG,"WS not connected"); return false; }
     ESP_LOGE(TAG,"WS send audio: %d bytes", (int)wav_sz);
@@ -608,50 +585,6 @@ static bool ws_send_audio_and_wait(size_t wav_sz, char *text_out, int max) {
         return true;
     }
     return false;
-}
-
-static bool ws_record_and_chat(size_t wav_sz, char *stt_out, char *llm_out, int max) {
-    if (!ws_connected) return false;
-
-    ws_stt_done = false;
-    ws_llm_done = false;
-    ws_stt_text[0] = 0;
-    ws_llm_text[0] = 0;
-
-    // Send listen start
-    ws_send_listen_start();
-    vTaskDelay(pdMS_TO_TICKS(100));
-
-    // Send PCM audio in chunks
-    size_t offset = 0;
-    while (offset < wav_sz) {
-        size_t chunk = (wav_sz - offset > 1024) ? 1024 : (wav_sz - offset);
-        ws_send_audio((uint8_t*)wav_buf + offset, chunk);
-        offset += chunk;
-        vTaskDelay(pdMS_TO_TICKS(10));
-    }
-
-    // Send listen stop
-    ws_send_listen_stop();
-
-    // Wait for STT + LLM responses
-    int timeout = 0;
-    while (!ws_stt_done && timeout < 80) {
-        vTaskDelay(pdMS_TO_TICKS(100));
-        timeout++;
-    }
-    if (ws_stt_done) {
-        strncpy(stt_out, ws_stt_text, max - 1);
-    }
-    timeout = 0;
-    while (!ws_llm_done && timeout < 120) {
-        vTaskDelay(pdMS_TO_TICKS(100));
-        timeout++;
-    }
-    if (ws_llm_done) {
-        strncpy(llm_out, ws_llm_text, max - 1);
-    }
-    return ws_stt_done || ws_llm_done;
 }
 
 /* ═══════════════════════════════════════
@@ -710,9 +643,7 @@ void app_main(void) {
     vTaskDelay(pdMS_TO_TICKS(3000));
 
     // Home screen
-    lcd_fill(0x0000);
-    lcd_draw_text("小芬v0.51", 2, 10, 0xFFFF, 0x0000);
-    lcd_draw_text("A=錄/播 B=發送", 2, 112, 0x07E0, 0x0000);
+    show_home();
 
     // 5. Scan I2C bus for devices
     ESP_LOGI(TAG,"I2C scan on I2C_NUM_1:");
@@ -777,9 +708,7 @@ void app_main(void) {
                     speaker_deinit();
                 }
                 lcd_fill(0x0000);
-                if(rec_len > 16000) {
-                    lcd_draw_text("B=發送 A=重錄", 2, 40, 0xFFFF, 0x0000);
-                } else if(rec_len > 8000) {
+                if(rec_len > 8000) {
                     lcd_draw_text("B=發送 A=重錄", 2, 40, 0xFFFF, 0x0000);
                 } else {
                     lcd_draw_text("太短 A=重錄", 2, 40, 0xF800, 0x0000);
@@ -795,7 +724,7 @@ void app_main(void) {
                 lcd_draw_text("WiFi未連接", 2, 10, 0xF800, 0x0000);
                 vTaskDelay(pdMS_TO_TICKS(2000));
                 lcd_fill(0x0000);
-                lcd_draw_text("小芬v0.51", 2, 10, 0xFFFF, 0x0000);
+                lcd_draw_text("小芬v0.52", 2, 10, 0xFFFF, 0x0000);
                 lcd_draw_text("A=錄/播 B=發送", 2, 112, 0x07E0, 0x0000);
                 vTaskDelay(pdMS_TO_TICKS(500));
                 continue;
@@ -845,9 +774,7 @@ void app_main(void) {
                 }
             }
             led_set_rgb(0,0,255,0);
-            lcd_fill(0x0000);
-            lcd_draw_text("小芬v0.51", 2, 10, 0xFFFF, 0x0000);
-            lcd_draw_text("A=錄/播 B=發送", 2, 112, 0x07E0, 0x0000);
+            show_home();
         }
         // Joystick center: play back recording
         if(aw_digitalRead(AW_P0_3) && rec_len > 0) {
@@ -859,9 +786,7 @@ void app_main(void) {
             speaker_stop();
             speaker_deinit();
             led_set_rgb(0,0,255,0);
-            lcd_fill(0x0000);
-            lcd_draw_text("小芬v0.51", 2, 10, 0xFFFF, 0x0000);
-            lcd_draw_text("A=錄/播 B=發送", 2, 112, 0x07E0, 0x0000);
+            show_home();
             vTaskDelay(pdMS_TO_TICKS(500));
         }
         vTaskDelay(pdMS_TO_TICKS(50));

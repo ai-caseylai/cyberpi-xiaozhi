@@ -349,8 +349,9 @@ class XiaoZhiServer:
             session.last_activity = datetime.now()
             if not hasattr(session, 'audio_buffer'):
                 session.audio_buffer = bytearray()
-            session.audio_buffer.extend(data)
-            if len(session.audio_buffer) % 16000 == 0:  # ~1 sec
+            if len(session.audio_buffer) < 512000:  # cap at ~16 sec
+                session.audio_buffer.extend(data)
+            if len(session.audio_buffer) % 16000 == 0:
                 print(f"  🎵 音頻累積: {len(session.audio_buffer)} bytes")
 
     # ── 協議處理器 ──────────────────────────
