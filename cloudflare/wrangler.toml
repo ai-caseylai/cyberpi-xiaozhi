@@ -1,0 +1,42 @@
+name = "funconnect-backend"
+main = "src/index.ts"
+compatibility_date = "2025-12-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Durable Object for per-device stateful sessions
+[[durable_objects.bindings]]
+name = "FUNCONNECT_SESSION"
+class_name = "FunConnectSession"
+
+[[migrations]]
+tag = "v1"
+new_classes = ["FunConnectSession"]
+
+# Workers AI binding (STT, LLM, TTS, Embedding)
+[ai]
+binding = "AI"
+
+# Environment variables
+[vars]
+AUTH_TOKEN = "funconnect-token"
+QWEN_API_KEY = "sk-4f18464b906c4d5abe53b1d4dce6f18e"
+QWEN_MODEL = "qwen-plus"
+LLM_MODEL = "@cf/meta/llama-4-scout-17b-16e-instruct"
+TTS_MODEL = "@cf/deepgram/aura-1"
+STT_MODEL = "@cf/deepgram/nova-3"
+
+# Optional: D1 database for user/device/school data
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "funconnect-db"
+# database_id = ""
+
+# Optional: Vectorize for RAG knowledge base
+# [[vectorize]]
+# binding = "VECTORIZE"
+# index_name = "funconnect-rag"
+
+# Optional: R2 for textbook/document storage
+# [[r2_buckets]]
+# binding = "R2"
+# bucket_name = "funconnect-files"

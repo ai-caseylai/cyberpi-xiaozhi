@@ -3,4 +3,5 @@
 nvs,      data, nvs,     0x9000,  0x5000
 otadata,  data, ota,     0xE000,  0x2000
 phy_init, data, phy,     0x10000, 0x1000
-factory,  app,  factory, 0x20000, 0x1E0000
+factory,  app,  factory, 0x20000, 0x3C0000
+# 4MB Flash layout: bootloader(0x1000) + pt(0x8000) + nvs(0x9000,20K) + otadata(0xE000) + phy_init(0x10000) + factory(0x20000,3.75MB) = 4MB total

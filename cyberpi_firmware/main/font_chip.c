@@ -66,24 +66,24 @@ int font_chip_get_16x16(uint16_t unicode, uint8_t *bitmap_out)
 {
     if (unicode < 0x80) return -1; // ASCII
 
+    // Try efont supplement first — covers 20,992 CJK characters
+    if (efont_supp_lookup(unicode, bitmap_out) == 0) return 0;
+
+    // Fall back to GT30L24A3W font chip (GB2312)
     unsigned long gb_code = U2G_GetData_16X16(unicode, bitmap_out);
     if (gb_code == 0) return -2;
 
     // Only trust GB2312 codes (both bytes >= 0xA1)
     uint8_t hi = gb_code >> 8;
     uint8_t lo = gb_code & 0xFF;
-    if (hi < 0xA1 || lo < 0xA1) goto try_efont;
+    if (hi < 0xA1 || lo < 0xA1) return -2;
 
     // Verify bitmap has actual data
     int sum = 0;
     for (int j = 0; j < 32; j++) sum += bitmap_out[j];
-    if (sum == 0) goto try_efont;
+    if (sum == 0) return -2;
 
     return 0;
-
-try_efont:
-    // Fall back to efont 16x16 Traditional Chinese supplement
-    return efont_supp_lookup(unicode, bitmap_out);
 }
 
 int font_chip_get_24x24(uint16_t unicode, uint8_t *bitmap_out)
